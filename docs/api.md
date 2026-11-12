@@ -6,7 +6,7 @@ The server keeps every reminder and lets any app read and change them. Everythin
 curl -H "Authorization: Bearer $NOEUD_TOKEN" https://example.com/noeud/v1/reminders
 ```
 
-Tokens are made on the server with `noeud-server token create <name>`, one per app, so each one can be revoked on its own. The name is recorded as `created_by` on the reminders an app creates.
+Tokens are made on the server with `noeud-server token create <name>`, one per app, so each one can be revoked on its own. A lost token is replaced with `noeud-server token regenerate <name>`: the app keeps its name, and the old token stops working at once. The name is recorded as `created_by` on the reminders an app creates.
 
 ## Reminders
 

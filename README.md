@@ -34,7 +34,7 @@ docker compose up -d
 docker compose exec server noeud-server token create extension
 ```
 
-The second command prints a token once, give it to the app it is named after. `token list` shows the tokens and when each was last used, and `token revoke <name>` turns one off.
+The second command prints a token once, give it to the app it is named after. `token list` shows the tokens and when each was last used, `token regenerate <name>` replaces a lost one (the old one stops working at once), and `token revoke <name>` turns one off.
 
 The compose file only listens on `127.0.0.1:8470`, so put a reverse proxy with HTTPS in front of it. It is meant to live under a path of a site you already have, like `https://example.com/noeud`, with no new name to set up: `deploy` has it for nginx (`nginx.conf`), Caddy (`caddy.conf`) and Apache (`apache.conf`). The reminders are kept in the `data` volume.
 
