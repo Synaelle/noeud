@@ -1,6 +1,8 @@
 # Noeud's server behind a reverse proxy on this machine, which gives it
-# HTTPS (nginx.conf beside this file serves it under /noeud/ of a site). Start it from this folder with docker compose up -d (or add --build
-# to build the image from this checkout), then make a token for each app:
+# HTTPS: nginx.conf, caddy.conf and apache.conf beside this file serve it under
+# /noeud/ of a site. Start it from this folder with docker compose up -d (or
+# add --build to build the image from this checkout), then make a token for
+# each app:
 #   docker compose exec server noeud-server token create extension
 name: noeud
 
