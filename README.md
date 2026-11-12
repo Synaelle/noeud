@@ -36,7 +36,7 @@ docker compose exec server noeud-server token create extension
 
 Until the first image is published, add `--build` to the first command to build it from this checkout. The second command prints a token once, give it to the app it is named after. `token list` shows the tokens and when each was last used, and `token revoke <name>` turns one off.
 
-The compose file only listens on `127.0.0.1:8470`, so put a reverse proxy with HTTPS in front of it. The reminders are kept in the `data` volume.
+The compose file only listens on `127.0.0.1:8470`, so put a reverse proxy with HTTPS in front of it. It is meant to live under a path of a site you already have, like `https://example.com/noeud`, with no new name to set up: `deploy/nginx.conf` does that for nginx. The reminders are kept in the `data` volume.
 
 ## Using it
 
@@ -44,8 +44,8 @@ See [the API reference](docs/api.md). A reminder is one request:
 
 ```sh
 curl -H "Authorization: Bearer $NOEUD_TOKEN" \
-  -d '{"title": "Call the dentist", "due_at": "2026-11-13T09:00:00+01:00"}' \
-  https://noeud.example.com/v1/reminders
+  -d '{"title": "Pet the cat", "due_at": "2026-11-13T09:00:00+01:00"}' \
+  https://example.com/noeud/v1/reminders
 ```
 
 ## Building

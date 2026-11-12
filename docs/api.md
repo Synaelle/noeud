@@ -3,7 +3,7 @@
 The server keeps every reminder and lets any app read and change them. Everything lives under `/v1` and speaks JSON. Every request except the health check needs a token in the `Authorization` header.
 
 ```sh
-curl -H "Authorization: Bearer $NOEUD_TOKEN" https://noeud.example.com/v1/reminders
+curl -H "Authorization: Bearer $NOEUD_TOKEN" https://example.com/noeud/v1/reminders
 ```
 
 Tokens are made on the server with `noeud-server token create <name>`, one per app, so each one can be revoked on its own. The name is recorded as `created_by` on the reminders an app creates.
@@ -152,7 +152,7 @@ When `version` is not the current one, the answer is 409 with the current remind
 A comment line is sent every 30 seconds so that proxies keep the connection open. Events are not replayed. An app that reconnects, or a bot that was offline when a reminder came due, asks `GET /v1/reminders?done=false&due_before=<now>` to catch up.
 
 ```sh
-curl -N -H "Authorization: Bearer $NOEUD_TOKEN" https://noeud.example.com/v1/events
+curl -N -H "Authorization: Bearer $NOEUD_TOKEN" https://example.com/noeud/v1/events
 ```
 
 ## Errors
