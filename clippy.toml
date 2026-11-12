@@ -1,0 +1,2 @@
+# names the doc_markdown lint should accept without backticks
+doc-valid-idents = ["SQLite", ".."]
