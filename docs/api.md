@@ -13,7 +13,7 @@ Tokens are made on the server with `noeud-server token create <name>`, one per a
 ```json
 {
   "id": "01937a4e-8c2f-7cc1-a1b2-3c4d5e6f7a8b",
-  "title": "Call the dentist",
+  "title": "Pet the cat",
   "notes": null,
   "due_at": "2026-11-13T09:00:00Z",
   "time_zone": "Europe/Paris",
@@ -91,7 +91,7 @@ With `since`, the list is in the order of the changes and `has_more` says whethe
 
 ```json
 {
-  "title": "Call the dentist",
+  "title": "Pet the cat",
   "due_at": "2026-11-13T10:00:00+01:00",
   "time_zone": "Europe/Paris"
 }
