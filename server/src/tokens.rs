@@ -46,18 +46,38 @@ fn hash(token: &str) -> Vec<u8> {
 ///
 /// The database, or no randomness from the system.
 pub fn create(tx: &Transaction<'_>, name: &str, now: i64) -> Result<Option<String>, DbError> {
-    let mut secret = [0u8; 32];
-    getrandom::fill(&mut secret).map_err(|e| DbError::Task(format!("randomness: {e}")))?;
-    let token = format!(
-        "{PREFIX}{}",
-        BASE32_NOPAD.encode(&secret).to_ascii_lowercase()
-    );
+    let token = new_token()?;
     let made = tx.execute(
         "INSERT INTO tokens (name, hash, created_at) VALUES (?1, ?2, ?3)
          ON CONFLICT (name) DO NOTHING",
         params![name, hash(&token), now],
     )?;
     Ok((made == 1).then_some(token))
+}
+
+fn new_token() -> Result<String, DbError> {
+    let mut secret = [0u8; 32];
+    getrandom::fill(&mut secret).map_err(|e| DbError::Task(format!("randomness: {e}")))?;
+    Ok(format!(
+        "{PREFIX}{}",
+        BASE32_NOPAD.encode(&secret).to_ascii_lowercase()
+    ))
+}
+
+/// Gives the token named `name` a new secret and returns it, or `None` when
+/// there is no such token. The old secret stops working at once; the name, and
+/// so `created_by` on that app's reminders, stays.
+///
+/// # Errors
+///
+/// The database, or no randomness from the system.
+pub fn regenerate(tx: &Transaction<'_>, name: &str, now: i64) -> Result<Option<String>, DbError> {
+    let token = new_token()?;
+    let changed = tx.execute(
+        "UPDATE tokens SET hash = ?1, created_at = ?2, last_used_at = NULL WHERE name = ?3",
+        params![hash(&token), now, name],
+    )?;
+    Ok((changed == 1).then_some(token))
 }
 
 /// Every token, by name.

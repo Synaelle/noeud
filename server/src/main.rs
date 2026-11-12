@@ -32,6 +32,9 @@ const USAGE: &str = "usage: noeud-server [--db <file>] [--listen <address>] <com
   serve               serves the API
   token create <name> makes a token for an app and prints it, once
   token list          lists the tokens and when they were last used
+  token regenerate <name>
+                      gives a token a new secret and prints it, once; the old
+                      one stops working at once
   token revoke <name> removes a token, its app is refused from then on
   healthcheck         exits 0 when the running server answers, for Docker
   version             prints the version

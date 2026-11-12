@@ -71,7 +71,23 @@ pub fn token(settings: &Settings, words: &[&str]) -> Result<(), String> {
                     Err(format!("no token named {name}"))
                 }
             }
-            _ => Err("usage: noeud-server token create <name> | list | revoke <name>".into()),
+            ["regenerate", name] => {
+                let owned = (*name).to_owned();
+                let made = db
+                    .call(move |tx| tokens::regenerate(tx, &owned, now))
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let token = made.ok_or(format!("no token named {name}"))?;
+                println!("{token}");
+                eprintln!(
+                    "This is the only time the token is shown. The old {name} token no longer works."
+                );
+                Ok(())
+            }
+            _ => Err(
+                "usage: noeud-server token create <name> | list | regenerate <name> | revoke <name>"
+                    .into(),
+            ),
         }
     })
 }

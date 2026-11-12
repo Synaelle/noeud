@@ -131,6 +131,43 @@ async fn tokens_are_checked() {
 }
 
 #[tokio::test]
+async fn a_regenerated_token_replaces_the_old_one() {
+    let s = server().await;
+    let r = s
+        .create(json!({ "title": "before", "due_at": "2026-11-13T09:00:00Z" }))
+        .await;
+    let fresh =
+        s.db.call(|tx| tokens::regenerate(tx, "tests", 1))
+            .await
+            .unwrap()
+            .expect("the token exists");
+    assert_ne!(fresh, s.token);
+
+    let (status, _) = s.send("GET", "/v1/token", None).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED, "the old token is refused");
+    let (status, body) = s
+        .send_as(
+            Some(&fresh),
+            "GET",
+            &format!("/v1/reminders/{}", r["id"].as_str().unwrap()),
+            None,
+        )
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "the new one reaches the same reminders"
+    );
+    assert_eq!(body["created_by"], "tests");
+
+    let none =
+        s.db.call(|tx| tokens::regenerate(tx, "nobody", 1))
+            .await
+            .unwrap();
+    assert_eq!(none, None);
+}
+
+#[tokio::test]
 async fn create_and_read() {
     let s = server().await;
     let r = s
