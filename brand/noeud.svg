@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- The Noeud bow: two loops and two tails of one red thread, 52 wide with round ends, no tile, so it sits on any background. -->
+  <g fill="none" stroke="#E44C3E" stroke-width="52" stroke-linecap="round" transform="translate(0 -6)">
+    <path d="M246 248C232 296 210 330 178 360"/>
+    <path d="M266 248C280 296 302 330 334 360"/>
+    <path d="M240 230C186 120 40 96 40 200C40 290 160 282 240 230"/>
+    <path d="M272 230C326 120 472 96 472 200C472 290 352 282 272 230"/>
+  </g>
+</svg>
