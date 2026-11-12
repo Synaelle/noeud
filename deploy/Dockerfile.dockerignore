@@ -1,0 +1,7 @@
+# only what the image build needs, and never local data or secrets
+.*
+target
+brand
+docs
+deploy
+**/*.log

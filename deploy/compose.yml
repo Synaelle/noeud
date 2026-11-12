@@ -1,0 +1,32 @@
+# Noeud's server behind a reverse proxy on this machine, which gives it
+# HTTPS. Start it from this folder with docker compose up -d (or add --build
+# to build the image from this checkout), then make a token for each app:
+#   docker compose exec server noeud-server token create extension
+name: noeud
+
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: ghcr.io/synaelle/noeud:0
+    restart: unless-stopped
+    # only the proxy on this machine reaches it
+    ports:
+      - '127.0.0.1:${PORT:-8470}:8470'
+    environment:
+      NOEUD_CORS_ORIGINS: ${CORS_ORIGINS:-}
+    volumes:
+      - data:/data
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'
+
+volumes:
+  data:
