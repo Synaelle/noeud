@@ -38,7 +38,7 @@ The compose file only listens on `127.0.0.1:8470`, so put a reverse proxy with H
 
 ## Using it
 
-See [the API reference](docs/api.md). A reminder is one request:
+New to APIs? [First steps](docs/first-steps.md) walks you through it one command at a time. Otherwise, see [the API reference](docs/api.md). A reminder is one request:
 
 ```sh
 curl -H "Authorization: Bearer $NOEUD_TOKEN" \

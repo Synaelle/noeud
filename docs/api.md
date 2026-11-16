@@ -2,6 +2,8 @@
 
 The server keeps every reminder and lets any app read and change them. Everything lives under `/v1` and speaks JSON. Every request except the health check needs a token in the `Authorization` header.
 
+New to APIs? Start with [First steps](first-steps.md).
+
 ```sh
 curl -H "Authorization: Bearer $NOEUD_TOKEN" https://example.com/noeud/v1/reminders
 ```
