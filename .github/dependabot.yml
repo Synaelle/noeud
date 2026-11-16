@@ -1,9 +1,15 @@
+# New major versions only, on Mondays. Security fixes for any version come
+# separately, from GitHub's security updates, as soon as a problem is known.
 version: 2
 updates:
   - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-minor, version-update:semver-patch]
     groups:
       cargo:
         patterns: ['*']
@@ -11,10 +17,21 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-minor, version-update:semver-patch]
     groups:
-      actions:
+      github-actions:
         patterns: ['*']
   - package-ecosystem: docker
     directory: /deploy
     schedule:
       interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-minor, version-update:semver-patch]
+    groups:
+      docker:
+        patterns: ['*']
