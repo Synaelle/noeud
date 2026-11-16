@@ -480,7 +480,7 @@ dependencies = [
 
 [[package]]
 name = "noeud-server"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "data-encoding",
@@ -891,7 +891,9 @@ dependencies = [
  "bitflags",
  "bytes",
  "http",
+ "http-body",
  "pin-project-lite",
+ "tokio",
  "tower-layer",
  "tower-service",
 ]
