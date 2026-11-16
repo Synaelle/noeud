@@ -12,7 +12,7 @@
 |---|---|---|
 | [Noeud for browsers](https://github.com/Synaelle/noeud-browser-extension) | Chromium browsers and Firefox | Available |
 | [Noeud for Android](https://github.com/Synaelle/noeud-android) | Android phones | Available |
-| Noeud for Linux | Linux desktops with DEs | Coming |
+| Noeud for Linux | Linux | Coming |
 | Noeud for Discord | A bot on your Discord server | Coming |
 
 Your own app can use it too, with [the API reference](docs/api.md).
