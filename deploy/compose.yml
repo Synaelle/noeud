@@ -20,6 +20,9 @@ services:
     volumes:
       - data:/data
     read_only: true
+    # it needs a few MB and a handful of threads
+    mem_limit: 256m
+    pids_limit: 64
     cap_drop:
       - ALL
     security_opt:
