@@ -26,7 +26,7 @@ Your own app can use it too, with [the API reference](docs/api.md).
 
 ## Running
 
-The server runs in Docker. In `deploy`:
+The server runs in Docker, on x86 and ARM machines alike, a Raspberry Pi 2 or later included. In `deploy`:
 
 ```sh
 docker compose up -d
