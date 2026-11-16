@@ -4,7 +4,7 @@
 
 <h1 align="center">Noeud API</h1>
 
-<p align="center">The reminders API every Noeud app syncs with: a small server you host that keeps your reminders and lets any app read and change them.</p>
+<p align="center">The self-hosted reminders API behind every Noeud app.</p>
 
 # Apps using it
 
