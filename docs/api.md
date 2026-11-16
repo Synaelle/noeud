@@ -8,7 +8,7 @@ New to APIs? Start with [First steps](first-steps.md).
 curl -H "Authorization: Bearer $NOEUD_TOKEN" https://example.com/noeud/v1/reminders
 ```
 
-Tokens are made on the server with `noeud-server token create <name>`, one per app, so each one can be revoked on its own. A lost token is replaced with `noeud-server token regenerate <name>`: the app keeps its name, and the old token stops working at once. The name is recorded as `created_by` on the reminders an app creates.
+Tokens are made on the server with `noeud-server token create <name>`, one per app, so each one can be revoked on its own. A lost token is replaced with `noeud-server token regenerate <name>`. The app keeps its name, and the old token stops working at once, within 30 seconds for an event stream already open. The name is recorded as `created_by` on the reminders an app creates.
 
 ## Reminders
 
@@ -29,6 +29,8 @@ Tokens are made on the server with `noeud-server token create <name>`, one per a
   "created_by": "extension"
 }
 ```
+
+Titles and notes come back exactly as they were sent, so an app escapes them for wherever it shows them, as HTML in a page or against mentions in a chat.
 
 Times are RFC 3339. The server accepts any offset and always answers in UTC with a `Z`, to the second.
 
@@ -151,7 +153,7 @@ When `version` is not the current one, the answer is 409 with the current remind
 | `deleted` | `{ "id", "version" }` | it was deleted |
 | `due` | the reminder | its time came |
 
-A comment line is sent every 30 seconds so that proxies keep the connection open. Events are not replayed. An app that reconnects, or a bot that was offline when a reminder came due, asks `GET /v1/reminders?done=false&due_before=<now>` to catch up.
+A comment line is sent every 30 seconds so that proxies keep the connection open. The stream ends when its token is revoked or regenerated, and the server answers 503 `busy` while 100 streams are open already. Events are not replayed. An app that reconnects, or a bot that was offline when a reminder came due, asks `GET /v1/reminders?done=false&due_before=<now>` to catch up.
 
 ```sh
 curl -N -H "Authorization: Bearer $NOEUD_TOKEN" https://example.com/noeud/v1/events
@@ -172,4 +174,5 @@ Errors come with a status code and a body that says what went wrong.
 | 404 | `not_found` |
 | 409 | `conflict` |
 | 413 | `too_large`, bodies are limited to 64 KB |
+| 503 | `busy`, too many event streams are open |
 | 500 | `internal` |

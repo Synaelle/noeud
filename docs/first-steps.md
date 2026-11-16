@@ -20,14 +20,19 @@ Last, you need a terminal with `curl`, a small program that sends messages to we
 
 ## 1. Keep the address and the token at hand
 
-So that you don't paste them into every command, store them in the terminal:
+So that you don't paste them into every command, store them in the terminal. First the address:
 
 ```sh
 NOEUD=https://example.com/noeud
-NOEUD_TOKEN=noeud_paste-your-token-here
 ```
 
-Nothing shows up, and that is normal. The terminal forgets them when it closes, so run these two lines again in any new terminal.
+Then the token. Run this line, paste the token and press <kbd>Enter</kbd>:
+
+```sh
+read -rs NOEUD_TOKEN
+```
+
+Nothing shows up while you paste, and that is normal. This way the token is not written in the terminal's history, where anyone who reads it later would find it. The terminal forgets them when it closes, so run these two lines again in any new terminal.
 
 ## 2. Check the server answers
 
