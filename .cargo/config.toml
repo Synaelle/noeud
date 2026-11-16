@@ -1,0 +1,4 @@
+# Crates published less than a week ago are not picked up yet, so that a bad
+# release is usually caught and yanked before it can reach a build.
+[registry]
+global-min-publish-age = "7 days"
