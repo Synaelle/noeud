@@ -537,3 +537,84 @@ async fn events_announce_changes_and_due_times() {
     assert!(due_line.contains("\"title\":\"due now\""), "{due_line}");
     assert!(Timestamp::now() >= due);
 }
+
+async fn open_events(s: &Server) -> axum::response::Response {
+    let req = Request::get("/v1/events")
+        .header("authorization", format!("Bearer {}", s.token))
+        .body(Body::empty())
+        .unwrap();
+    s.app.clone().oneshot(req).await.unwrap()
+}
+
+#[tokio::test]
+async fn an_open_event_stream_ends_when_its_token_is_revoked() {
+    let s = server().await;
+    let res = open_events(&s).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let mut stream = res.into_body().into_data_stream();
+    s.db.call(|tx| tokens::revoke(tx, "tests")).await.unwrap();
+    let end = tokio::time::timeout(Duration::from_secs(3), async {
+        while let Some(chunk) = stream.next().await {
+            chunk.unwrap();
+        }
+    })
+    .await;
+    assert!(end.is_ok(), "the stream ended");
+}
+
+#[tokio::test]
+async fn too_many_event_streams_are_refused() {
+    let s = server().await;
+    let mut open = Vec::new();
+    for _ in 0..100 {
+        let res = open_events(&s).await;
+        assert_eq!(res.status(), StatusCode::OK);
+        open.push(res);
+    }
+    let res = open_events(&s).await;
+    assert_eq!(res.status(), StatusCode::SERVICE_UNAVAILABLE);
+    open.pop();
+    let res = open_events(&s).await;
+    assert_eq!(
+        res.status(),
+        StatusCode::OK,
+        "a closed stream frees its slot"
+    );
+}
+
+#[tokio::test]
+async fn answers_are_not_cached() {
+    let s = server().await;
+    let req = Request::get("/v1/health").body(Body::empty()).unwrap();
+    let res = s.app.clone().oneshot(req).await.unwrap();
+    assert_eq!(res.headers()["cache-control"], "no-store");
+}
+
+#[test]
+fn cors_origins_are_checked() {
+    assert!(crate::origin("https://example.com").is_ok());
+    assert!(crate::origin("http://localhost:5173").is_ok());
+    for bad in [
+        "*",
+        "null",
+        "https://example.com/",
+        "example.com",
+        "https://a.com/path",
+    ] {
+        assert!(crate::origin(bad).is_err(), "{bad}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn a_new_database_file_is_private() {
+    use std::os::unix::fs::PermissionsExt;
+    let file = std::env::temp_dir().join(format!("noeud-mode-{}.db", std::process::id()));
+    let _ = std::fs::remove_file(&file);
+    drop(Db::open(&file).unwrap());
+    let mode = std::fs::metadata(&file).unwrap().permissions().mode();
+    for extra in ["", "-wal", "-shm"] {
+        let _ = std::fs::remove_file(format!("{}{extra}", file.display()));
+    }
+    assert_eq!(mode & 0o777, 0o600);
+}

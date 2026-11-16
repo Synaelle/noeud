@@ -106,6 +106,23 @@ pub fn revoke(tx: &Transaction<'_>, name: &str) -> Result<bool, DbError> {
     Ok(tx.execute("DELETE FROM tokens WHERE name = ?1", [name])? == 1)
 }
 
+/// Whether `token` is still known, without counting it as a use.
+///
+/// # Errors
+///
+/// The database.
+pub fn exists(tx: &Transaction<'_>, token: &str) -> Result<bool, DbError> {
+    if !token.starts_with(PREFIX) {
+        return Ok(false);
+    }
+    let found: Option<i64> = tx
+        .query_row("SELECT 1 FROM tokens WHERE hash = ?1", [hash(token)], |r| {
+            r.get(0)
+        })
+        .optional()?;
+    Ok(found.is_some())
+}
+
 /// The name of the token `token`, when the server knows it, and notes that
 /// it was used.
 ///

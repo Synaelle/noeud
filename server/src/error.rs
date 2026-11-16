@@ -62,6 +62,15 @@ impl Error {
         }
     }
 
+    /// Too many event streams are open, the client may try again later.
+    pub fn busy() -> Self {
+        Self::new(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "busy",
+            "too many event streams are open",
+        )
+    }
+
     /// Something broke, the details go to the log.
     pub fn internal(detail: &str) -> Self {
         tracing::error!("{detail}");

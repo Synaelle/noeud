@@ -5,17 +5,21 @@
 use axum::body::Bytes;
 use axum::extract::rejection::BytesRejection;
 use axum::extract::{DefaultBodyLimit, Path, Query, State};
-use axum::http::{HeaderValue, Method, StatusCode, header};
+use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, header};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
+use std::time::Duration;
 use tokio::sync::watch;
-use tower_http::cors::CorsLayer;
 
-use crate::auth::Caller;
+use tower_http::cors::CorsLayer;
+use tower_http::set_header::SetResponseHeaderLayer;
+use tower_http::timeout::TimeoutLayer;
+
+use crate::auth::{self, Caller};
 use crate::db::Db;
 use crate::error::Error;
 use crate::events::{Event, Hub};
@@ -23,6 +27,10 @@ use crate::reminders::{self, Reminder};
 
 /// Request bodies are small JSON objects.
 const BODY_LIMIT: usize = 64 * 1024;
+
+/// A request that takes longer, such as a body sent very slowly, is dropped.
+/// An event stream answers at once, so this does not cut it.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// What every handler shares.
 #[derive(Clone)]
@@ -47,6 +55,15 @@ pub fn app(state: AppState, origins: &[HeaderValue]) -> Router {
         .route("/v1/events", get(events))
         .fallback(|| async { Error::not_found("no such endpoint") })
         .layer(DefaultBodyLimit::max(BODY_LIMIT))
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            REQUEST_TIMEOUT,
+        ))
+        // reminders are private: no browser keeps a copy
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("no-store"),
+        ))
         .with_state(state);
     if !origins.is_empty() {
         router = router.layer(
@@ -200,6 +217,15 @@ async fn delete(
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn events(_: Caller, State(state): State<AppState>) -> impl IntoResponse {
-    state.hub.stream(state.shutdown.clone())
+async fn events(
+    _: Caller,
+    headers: HeaderMap,
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, Error> {
+    // the extractor has checked the token, which is there
+    let token = auth::bearer(&headers).ok_or_else(Error::unauthorized)?;
+    state
+        .hub
+        .stream(state.shutdown.clone(), state.db.clone(), token)
+        .ok_or_else(Error::busy)
 }

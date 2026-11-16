@@ -13,7 +13,7 @@ use std::time::Duration;
 use axum::response::sse::{Event as SseEvent, KeepAlive, Sse};
 use jiff::Timestamp;
 use serde_json::json;
-use tokio::sync::{Notify, broadcast, watch};
+use tokio::sync::{Notify, Semaphore, broadcast, watch};
 use tokio_stream::wrappers::{BroadcastStream, WatchStream};
 use tokio_stream::{Stream, StreamExt};
 
@@ -22,6 +22,16 @@ use crate::reminders::{self, Reminder};
 
 /// Events kept for a slow listener before it misses some.
 const BACKLOG: usize = 256;
+
+/// Open event streams at most. Each app keeps one open.
+const MAX_STREAMS: usize = 100;
+
+/// How often an open stream checks that its token was not revoked.
+const TOKEN_CHECK: Duration = if cfg!(test) {
+    Duration::from_millis(200)
+} else {
+    Duration::from_secs(30)
+};
 
 /// The scheduler checks at least this often, in case the clock jumps.
 const LONGEST_SLEEP: Duration = Duration::from_secs(300);
@@ -63,6 +73,7 @@ impl Event {
 pub struct Hub {
     events: broadcast::Sender<Event>,
     wake: Arc<Notify>,
+    streams: Arc<Semaphore>,
 }
 
 impl Default for Hub {
@@ -70,6 +81,7 @@ impl Default for Hub {
         Self {
             events: broadcast::channel(BACKLOG).0,
             wake: Arc::new(Notify::new()),
+            streams: Arc::new(Semaphore::new(MAX_STREAMS)),
         }
     }
 }
@@ -83,29 +95,41 @@ impl Hub {
         self.wake.notify_one();
     }
 
-    /// The event stream for one listener, which ends when `shutdown` turns
-    /// true so the server can stop.
+    /// The event stream for one listener holding `token`. It ends when
+    /// `shutdown` turns true so the server can stop, or once the token is
+    /// revoked. `None` when too many streams are open already.
     pub fn stream(
         &self,
         shutdown: watch::Receiver<bool>,
-    ) -> Sse<impl Stream<Item = Result<SseEvent, Infallible>> + use<>> {
+        db: Db,
+        token: String,
+    ) -> Option<Sse<impl Stream<Item = Result<SseEvent, Infallible>> + use<>>> {
         enum Item {
             Event(Box<Event>),
             Missed,
             Stop,
         }
+        let permit = Arc::clone(&self.streams).try_acquire_owned().ok()?;
         let stop = WatchStream::new(shutdown)
             .filter(|stopping| *stopping)
+            .map(|_| Item::Stop);
+        let revoked = WatchStream::new(watch_token(db, token))
+            .filter(|gone| *gone)
             .map(|_| Item::Stop);
         let stream = BroadcastStream::new(self.events.subscribe())
             .map(|e| e.map_or(Item::Missed, |e| Item::Event(Box::new(e))))
             .merge(stop)
+            .merge(revoked)
             .take_while(|item| !matches!(item, Item::Stop))
-            .filter_map(|item| match item {
-                Item::Event(e) => Some(Ok(e.to_sse())),
-                Item::Missed | Item::Stop => None,
+            .filter_map(move |item| {
+                // the slot is free again once the stream is dropped
+                let _ = &permit;
+                match item {
+                    Item::Event(e) => Some(Ok(e.to_sse())),
+                    Item::Missed | Item::Stop => None,
+                }
             });
-        Sse::new(stream).keep_alive(KeepAlive::new().interval(Duration::from_secs(30)))
+        Some(Sse::new(stream).keep_alive(KeepAlive::new().interval(Duration::from_secs(30))))
     }
 
     /// Announces `due` events until `shutdown` turns true.
@@ -144,4 +168,32 @@ impl Hub {
             }
         }
     }
+}
+
+/// Turns true once `token` is no longer known, checked every `TOKEN_CHECK`
+/// while someone listens. The token commands run in another process, so the
+/// server has to look for itself.
+fn watch_token(db: Db, token: String) -> watch::Receiver<bool> {
+    let (gone, receiver) = watch::channel(false);
+    tokio::spawn(async move {
+        let start = tokio::time::Instant::now() + TOKEN_CHECK;
+        let mut ticks = tokio::time::interval_at(start, TOKEN_CHECK);
+        loop {
+            tokio::select! {
+                _ = ticks.tick() => {}
+                () = gone.closed() => return,
+            }
+            let token = token.clone();
+            match db.call(move |tx| crate::tokens::exists(tx, &token)).await {
+                Ok(true) => {}
+                Ok(false) => {
+                    tracing::info!("closed an event stream whose token was revoked");
+                    let _ = gone.send(true);
+                    return;
+                }
+                Err(err) => tracing::warn!("cannot check a stream's token: {err}"),
+            }
+        }
+    });
+    receiver
 }

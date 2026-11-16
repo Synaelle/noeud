@@ -82,8 +82,28 @@ fn cors_origins() -> Result<Vec<HeaderValue>, String> {
     list.split(',')
         .map(str::trim)
         .filter(|o| !o.is_empty())
-        .map(|o| HeaderValue::from_str(o).map_err(|_| format!("bad origin {o}")))
+        .map(origin)
         .collect()
+}
+
+/// One origin of `NOEUD_CORS_ORIGINS`, written as a browser sends it:
+/// `https://example.com` or `http://localhost:5173`, without a path or a
+/// trailing slash, and never `*`, which would let every site in.
+fn origin(text: &str) -> Result<HeaderValue, String> {
+    let bad = || {
+        format!(
+            "NOEUD_CORS_ORIGINS: {text} is not an origin, write it like https://example.com \
+             (no path, no trailing slash, no *)"
+        )
+    };
+    let rest = text
+        .strip_prefix("https://")
+        .or_else(|| text.strip_prefix("http://"))
+        .ok_or_else(bad)?;
+    if rest.is_empty() || rest.contains(['/', '*', '?', '#', ' ']) {
+        return Err(bad());
+    }
+    HeaderValue::from_str(text).map_err(|_| bad())
 }
 
 fn main() -> ExitCode {
@@ -124,6 +144,9 @@ fn serve(settings: &Settings) -> Result<(), String> {
     let db = Db::open(&settings.db).map_err(|e| e.to_string())?;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
+        // database calls take turns on one connection, more threads would only
+        // wait, and the container caps how many it may start
+        .max_blocking_threads(16)
         .build()
         .map_err(|e| e.to_string())?;
     runtime.block_on(async {
