@@ -7,7 +7,7 @@
 
 # The build runs on the machine's own platform and cross-compiles for the
 # image's: much faster than emulating an ARM machine for the whole build.
-FROM --platform=$BUILDPLATFORM rust:1.99.0-trixie@sha256:81015672d6939b0265f09adf96d5de125482bb1330106076956b0518e74edc90 AS build
+FROM --platform=$BUILDPLATFORM rust:1.100.0-trixie@sha256:e19840879045c951c905d0eaa9887f3439c62000e429963371b376bac8d38c31 AS build
 ARG TARGETARCH
 ARG TARGETVARIANT
 WORKDIR /src
