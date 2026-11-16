@@ -2,11 +2,11 @@
   <img src="brand/noeud.svg" alt="" width="120">
 </p>
 
-<h1 align="center">Noeud</h1>
+<h1 align="center">Noeud API</h1>
 
-<p align="center">Simple reminders that notify you in your browser and soon everywhere else, kept on a small server you host.</p>
+<p align="center">The reminders API every Noeud app syncs with: a small server you host that keeps your reminders and lets any app read and change them.</p>
 
-# Apps
+# Apps using it
 
 | App | For | |
 |---|---|---|
@@ -14,11 +14,9 @@
 | Noeud for Android | Android phones | Coming |
 | Noeud for Discord | A bot on your Discord server | Coming |
 
-Each app works with the API below, and so can your own.
+Your own app can use it too, with [the API reference](docs/api.md).
 
 # The API
-
-The server in this repository keeps every reminder and lets any app read and change them.
 
 - One small program and one SQLite file, light enough for any home server.
 - A plain HTTP API with one token per app, so each app can be turned off on its own.
