@@ -11,7 +11,7 @@
 | App | For | |
 |---|---|---|
 | [Noeud for browsers](https://github.com/Synaelle/noeud-browser-extension) | Chromium browsers and Firefox | Available |
-| Noeud for Android | Android phones | Coming |
+| [Noeud for Android](https://github.com/Synaelle/noeud-android) | Android phones | Available |
 | Noeud for Linux | Linux desktops with DEs | Coming |
 | Noeud for Discord | A bot on your Discord server | Coming |
 
