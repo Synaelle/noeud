@@ -5,14 +5,34 @@
 # database in the /data volume. Build from the repository root:
 #   docker build -f deploy/Dockerfile -t noeud-server .
 
-FROM rust:1.99.0-trixie@sha256:81015672d6939b0265f09adf96d5de125482bb1330106076956b0518e74edc90 AS build
+# The build runs on the machine's own platform and cross-compiles for the
+# image's: much faster than emulating an ARM machine for the whole build.
+FROM --platform=$BUILDPLATFORM rust:1.99.0-trixie@sha256:81015672d6939b0265f09adf96d5de125482bb1330106076956b0518e74edc90 AS build
+ARG TARGETARCH
+ARG TARGETVARIANT
 WORKDIR /src
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY server server
+# the Rust target, and the C compiler for SQLite and the linker for it
+RUN case "$TARGETARCH$TARGETVARIANT" in \
+      amd64) echo x86_64-unknown-linux-gnu x86_64-linux-gnu ;; \
+      arm64) echo aarch64-unknown-linux-gnu aarch64-linux-gnu ;; \
+      armv7) echo armv7-unknown-linux-gnueabihf arm-linux-gnueabihf ;; \
+      *) echo "no build for $TARGETARCH$TARGETVARIANT" >&2; exit 1 ;; \
+    esac > /target \
+ && read -r target gnu < /target \
+ && if [ "$(gcc -dumpmachine)" != "$gnu" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends "gcc-$(echo "$gnu" | tr _ -)" "libc6-dev-${TARGETARCH}${TARGETVARIANT:+hf}-cross" \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi \
+ && rustup target add "$target"
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/src/target \
-    cargo build --release --locked -p noeud-server \
- && install -D target/release/noeud-server /out/bin/noeud-server \
+    --mount=type=cache,id=target-$TARGETARCH$TARGETVARIANT,target=/src/target \
+    read -r target gnu < /target \
+ && triple=$(echo "$target" | tr a-z- A-Z_) \
+ && export "CARGO_TARGET_${triple}_LINKER=$gnu-gcc" "CC_$(echo "$target" | tr - _)=$gnu-gcc" \
+ && cargo build --release --locked -p noeud-server --target "$target" \
+ && install -D "target/$target/release/noeud-server" /out/bin/noeud-server \
  && install -d -m 700 /out/root/data
 
 FROM gcr.io/distroless/cc-debian13:nonroot@sha256:cc66d222f0a7ec996b78a99fe76a969bc80b539a5016ad866c14d1949bc6d0ab
