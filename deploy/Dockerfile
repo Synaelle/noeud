@@ -7,7 +7,7 @@
 
 # The build runs on the machine's own platform and cross-compiles for the
 # image's: much faster than emulating an ARM machine for the whole build.
-FROM --platform=$BUILDPLATFORM rust:1.100.0-trixie@sha256:e19840879045c951c905d0eaa9887f3439c62000e429963371b376bac8d38c31 AS build
+FROM --platform=$BUILDPLATFORM rust:1.100.0-trixie@sha256:223cc32ddca8f3ee90c436dbc94b6b5f052ea7f9653c5201e9612f08ad7d21b8 AS build
 ARG TARGETARCH
 ARG TARGETVARIANT
 WORKDIR /src
@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
  && install -D "target/$target/release/noeud-server" /out/bin/noeud-server \
  && install -d -m 700 /out/root/data
 
-FROM gcr.io/distroless/cc-debian13:nonroot@sha256:cb87acc574abe719b6e5c547384defa2f7b1f24af9605d3f618cf852495d8be2
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:532c7a94f9e96ba9db75eb9388f4227751131c7cb0a411d1a8521af4096135de
 COPY --from=build /out/bin/ /usr/local/bin/
 # the volume takes this folder's owner and mode when it is first made
 COPY --from=build --chown=65532:65532 /out/root/ /
